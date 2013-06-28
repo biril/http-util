@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>http-util.js</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>http-util.js</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <pre><code>HTTP Util v0.1.0
+
+https://github.com/biril/http-util
+Licensed under the MIT License
+Copyright (c) 2013 Alex Lambiris</code></pre>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="comment">/*jshint node:true */</span>
+
+<span class="string">"use strict"</span>;
+
+require(<span class="string">"colors"</span>);
+
+<span class="keyword">var</span> _ = require(<span class="string">"underscore"</span>),
+
+    util = require(<span class="string">"util"</span>),</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>Url utilities</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    parseUrl = require(<span class="string">"url"</span>).parse,
+    formatUrl = require(<span class="string">"url"</span>).format,
+
+    http = require(<span class="string">"http"</span>),
+    https = require(<span class="string">"https"</span>),</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>A handy no-op to reuse</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    noOp = <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>},</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>A helper which creates an array containing <code>obj</code> as first element and the elements of <code>args</code>
+ as final elements, (excluding all elements up to the <code>argsIndex</code>-th)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    mergeWithArgs = <span class="function"><span class="keyword">function</span> <span class="params">(obj, args, argsIndex)</span> {</span>
+        <span class="keyword">return</span> Array.prototype.concat.apply([obj], Array.prototype.slice.call(args, argsIndex || <span class="number">0</span>));
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>A simple &#39;contextual&#39; logger. Every log message belongs to a specific context with a
+ meaningful (unique-ish) name and a discreet color. Based on these, it applies a uniform
+ &#39;decoration&#39; for all messages which are part of the same op, even when intermingled with
+ others, referring to some <em>other</em> (parallel) op</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    logger = (<span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+        <span class="keyword">var</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>Log level</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            level = <span class="number">0</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>Log colors</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            colors = [<span class="string">"yellow"</span>, <span class="string">"cyan"</span>, <span class="string">"magenta"</span>, <span class="string">"green"</span>, <span class="string">"grey"</span>, <span class="string">"blue"</span>],</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>Index of current log color, used to loop through them</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            colorIndex = <span class="number">0</span>,
+
+            lgr = {
+
+                write: <span class="literal">null</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>Set the log-level - 0 (none) to 4 (debug (annoying))</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                setLevel: <span class="function"><span class="keyword">function</span> <span class="params">(lvl)</span> {</span>
+                    level = lvl;
+                    lgr.write = level ? <span class="function"><span class="keyword">function</span> <span class="params">(context, logLevel, msg)</span> {</span>
+                        <span class="keyword">if</span> (logLevel &gt; level) { <span class="keyword">return</span>; }
+                        util.puts(util.format.apply(util, mergeWithArgs((context.name + <span class="string">"&gt;  "</span> + msg)[context.color], arguments, <span class="number">3</span>)));
+                    } : noOp;
+                },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>Ensure that there&#39;s a logging-context (a <code>logContext</code> member with <code>id</code>, <code>name</code>,
+<code>color</code>) present on given <code>opts</code> object. That is to say, <em>create it</em> if not
+already there. <code>url</code> (a URL object) is used to build the context name, if present</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                ensureContext: <span class="function"><span class="keyword">function</span> <span class="params">(opts, url)</span> {</span>
+                    <span class="keyword">if</span> (opts.logContext) { <span class="keyword">return</span>; }
+
+                    <span class="keyword">var</span> name = <span class="string">""</span>;
+                    <span class="keyword">if</span> (url) {
+                        name = (url.protocol &amp;&amp; url.protocol.indexOf(<span class="string">"https"</span>) === <span class="number">0</span> ? <span class="string">"s://"</span> : <span class="string">""</span>) + url.hostname + url.pathname;
+                        <span class="keyword">if</span> (name.length &gt; <span class="number">32</span>) { name = name.substr(<span class="number">0</span>, <span class="number">15</span>) + <span class="string">".."</span> + name.substr(-<span class="number">15</span>, <span class="number">15</span>); }
+                    }
+                    name = opts.method + <span class="string">" "</span> + name;
+
+                    opts.logContext = {
+                        id: _.uniqueId(),
+                        name: name,
+                        color: colors[colorIndex]
+                    };
+
+                    colorIndex = (colorIndex + <span class="number">1</span>) % colors.length;
+                },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Create a writer (a logging function) for the given <code>opts.context</code>. Will ensure
+ that logging-context actually exists on <code>opts</code> using the optional <code>url</code> to
+ create it if it doesn&#39;t</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                createWriter: <span class="function"><span class="keyword">function</span> <span class="params">(opts, url)</span> {</span>
+                    lgr.ensureContext(opts, url);
+                    <span class="keyword">return</span> <span class="function"><span class="keyword">function</span> <span class="params">(level, msg)</span> {</span>
+                        lgr.write.apply(<span class="literal">null</span>, mergeWithArgs(opts.logContext, arguments));
+                    };
+                }
+            };
+
+        lgr.setLevel(<span class="number">0</span>);
+        <span class="keyword">return</span> lgr;
+    }()),</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>Short descriptions for HTTP status codes </p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    statusCodeDescrs = require(<span class="string">"http"</span>).STATUS_CODES,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>Ports assigned by default to HTTP/S protocols</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    portForProtocol = { http: <span class="number">80</span>, https: <span class="number">443</span> },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>Get a value indicating whether given status code signifies a redirect (for which a &#39;location&#39;
+ header should be present). [Status codes 304 &#39;not modified&#39; and 305 &#39;use proxy&#39; are not
+ redirects]</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    isRedirectStatusCode = <span class="function"><span class="keyword">function</span> <span class="params">(statusCode)</span> {</span>
+        <span class="keyword">return</span>  statusCode === <span class="number">300</span> || <span class="comment">// Multiple choices</span>
+                statusCode === <span class="number">301</span> || <span class="comment">// Moved permanently</span>
+                statusCode === <span class="number">302</span> || <span class="comment">// Found (Moved temporarily)</span>
+                statusCode === <span class="number">303</span> || <span class="comment">// See other</span>
+                statusCode === <span class="number">307</span>;   <span class="comment">// Temporary redirect</span>
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>Buffer given response&#39;s content (all data received as part of the response from call-time and
+ onwards). When response ends <code>opts.onEnd</code> will be invoked with <code>buffer</code> and
+ <code>writtenContentLength</code> parameters. If connection is closed before it ends, <code>opts.onClose</code>
+ will be called with the same parameters</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    bufferResponseContent = <span class="function"><span class="keyword">function</span> <span class="params">(response, opts)</span> {</span>
+        <span class="keyword">var</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>Attempt to determine buffer size from &#39;content-length&#39; header (or default to 512
+ octets)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            bufferSize = parseInt(response.headers[<span class="string">"content-length"</span>], <span class="number">10</span>) || <span class="number">512</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>Create buffer</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            buffer = <span class="keyword">new</span> Buffer(bufferSize),</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>Keep track of written content length. The buffer object <em>cannot</em> actually be queried
+ for this</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            writtenContentLength = <span class="number">0</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Logging function</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            l = logger.createWriter(opts);
+
+        l(<span class="number">2</span>, <span class="string">"buffering response"</span>);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>Handle a new chunk of data acquired from the host, as part of the response. Indicated by
+ an emitted &#39;data&#39; event. The chunk is either a Buffer (by default) or a string if
+ setEncoding() was used. Each chunk is appended into the <code>buffer</code> ad infinitum until
+ the response ends</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        response.on(<span class="string">"data"</span>, <span class="function"><span class="keyword">function</span> <span class="params">(chunk)</span> {</span>
+            l(<span class="number">3</span>, <span class="string">"buffering: received chunk, length: %d octets"</span>, chunk.length);
+            l(<span class="number">4</span>, <span class="string">"buffering: chunk: %s"</span>, util.inspect(chunk.toString().substr(<span class="number">32</span>))); <span class="comment">// TODO: Fix chunk conversion</span>
+            <span class="keyword">if</span> (!Buffer.isBuffer(chunk)) { chunk = <span class="keyword">new</span> Buffer(chunk); }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              <p>Enlarge the buffer if chunk won&#39;t fit</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">if</span> (chunk.length &gt; buffer.length - writtenContentLength) {
+                <span class="keyword">while</span> (bufferSize &lt; writtenContentLength + chunk.length) { bufferSize *= <span class="number">2</span>; }
+                <span class="keyword">var</span> enlargedBuffer = <span class="keyword">new</span> Buffer(bufferSize);
+                buffer.copy(enlargedBuffer);
+                buffer = enlargedBuffer;
+            }
+
+            chunk.copy(buffer, writtenContentLength);
+            writtenContentLength += chunk.length;
+        });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-22">&#182;</a>
+              </div>
+              <p>Handle the response-end, after which no more data will be received. Indicated by an
+ emitted &#39;end&#39; event. Delegate to given <code>opts.onEnd</code> callback</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        response.once(<span class="string">"end"</span>, <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+            l(<span class="number">2</span>, <span class="string">"buffering: response ended, content length: %d octets"</span>, writtenContentLength);
+            <span class="keyword">if</span>(opts.onEnd) { opts.onEnd(buffer, writtenContentLength); }
+        });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-23">&#182;</a>
+              </div>
+              <p>Handle the termination of the underlying connection to the server before <code>response.end()</code>
+ was called or was able to flush. Indicated by an emitted &#39;close&#39; event. Delegates to
+ given <code>opts.onClose</code> callback</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        response.once(<span class="string">"close"</span>, <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+            l(<span class="number">2</span>, <span class="string">"buffering: connection closed (!), written content length: %d octets"</span>, writtenContentLength);
+            <span class="keyword">if</span>(opts.onClose) { opts.onClose(buffer, writtenContentLength); }
+        });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-24">&#182;</a>
+              </div>
+              <p>Handle a response related error, indicated by an emitted &#39;error&#39; event. Delegate to
+ given <code>opts.onError</code> callback</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        response.on(<span class="string">"error"</span>, <span class="function"><span class="keyword">function</span> <span class="params">(error)</span> {</span>
+            l(<span class="number">2</span>, <span class="string">"buffering: error on response (!): %j, written content length: %d octets"</span>, error, writtenContentLength);
+            <span class="keyword">if</span>(opts.onError) { opts.onError(error, buffer, writtenContentLength); }
+        });
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-25">&#182;</a>
+              </div>
+              <h2>RepeatableClientRequest</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-26">&#182;</a>
+              </div>
+              <p>A thin wrapper around <code>http.ClientRequest</code> which stores all written content. This can be
+ retrieved at anytime through the <code>buffer</code> property. The <code>createRepeatableRequest</code> method
+ accepts a <code>http.ClientRequest</code> instance and returns a new <code>RepeatableClientRequest</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    createRepeatableRequest = <span class="function"><span class="keyword">function</span> <span class="params">(clientRequest)</span> {</span>
+        <span class="keyword">var</span> bufferSize = <span class="number">512</span>,
+            buffer = <span class="keyword">new</span> Buffer(bufferSize),
+            writtenContentLength = <span class="number">0</span>,
+            RepeatableClientRequest = <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>},
+            rcr = <span class="literal">null</span>;
+
+        RepeatableClientRequest.prototype = clientRequest;
+
+        rcr = <span class="keyword">new</span> RepeatableClientRequest();
+
+        Object.defineProperties(rcr, {
+            write: {
+                value: <span class="function"><span class="keyword">function</span> <span class="params">(chunk, encoding, callback)</span> {</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
+              <p>callback || (callback = noOp);</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                    <span class="keyword">if</span> (!Buffer.isBuffer(chunk)) { chunk = <span class="keyword">new</span> Buffer(chunk, encoding); }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-28">&#182;</a>
+              </div>
+              <p>Enlarge the buffer if chunk won&#39;t fit</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                    <span class="keyword">if</span> (chunk.length &gt; buffer.length - writtenContentLength) {
+                        <span class="keyword">while</span> (bufferSize &lt; writtenContentLength + chunk.length) { bufferSize *= <span class="number">2</span>; }
+                        <span class="keyword">var</span> enlargedBuffer = <span class="keyword">new</span> Buffer(bufferSize);
+                        buffer.copy(enlargedBuffer);
+                        buffer = enlargedBuffer;
+                    }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-29">&#182;</a>
+              </div>
+              <p>Copy chunk into buffer</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                    chunk.copy(buffer, writtenContentLength);
+                    writtenContentLength += chunk.length;
+
+                    <span class="keyword">return</span> clientRequest.write(chunk, encoding, callback);
+                }
+            },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-30">&#182;</a>
+              </div>
+              <p>The <code>end</code> method just delegates to the inherited <code>ClientRequest.end</code>. Which is
+ exposed and available to callers anyway. But
+ <a href="https://github.com/joyent/node/issues/5758">still</a></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            end: { value: <span class="function"><span class="keyword">function</span> <span class="params">(data, encoding)</span> {</span> <span class="keyword">return</span> clientRequest.end(data, encoding); } },
+            buffer: { get: <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span> <span class="keyword">return</span> buffer; } },
+            writtenContentLength: { get: <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span> <span class="keyword">return</span> writtenContentLength; } }
+        });
+        <span class="keyword">return</span> rcr;
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-31">&#182;</a>
+              </div>
+              <h2>&#39;requestInto<em>__</em>&#39; Methods</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-32">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-32">&#182;</a>
+              </div>
+              <p>Both <code>requestIntoStream</code> &amp; <code>requestIntoResponse</code> accept similar parameters and return an
+ <code>http.ClientRequest</code> object. This also holds true for <code>request</code> and <code>forward</code> which
+ delegate to the former pair. In detail:</p>
+<p>The <code>url</code> parameter, common to both methods is the <em>absolute</em> URL of the resource to be
+ requested. This may be a plain string or a URL object.</p>
+<p>The <code>opts</code> parameter indicates further options. None of these is mandatory as they all
+ default to sane values. [Note that in the following, &#39;response&#39; always refers to the the
+ response received from the origin-server - <em>not</em> the response object given to
+ <code>requestIntoResponse</code>. The latter will be refered to as &#39;response-to-client&#39; where
+ necessary.]</p>
+<ul>
+<li><code>method</code>: Request method - an HTTP verb. &#39;GET&#39; by default</li>
+<li><code>headers</code>: A hash of request headers. This may empty as &#39;host&#39; (the only mandatory header
+  in HTTP/1.1) will be derived from given <code>url</code> if absent. Special headers that should be
+  noted are described in
+  <a href="http://nodejs.org/api/http.html#http_http_request_options_callback">Node docs</a></li>
+<li><code>maxContentLength</code>: The maximum allowed length for the received content. Lengthier
+  responses will be truncated. Optional (&amp; experimental) - no max by default</li>
+<li><code>followRedirects</code>: Indicates whether redirects should be silently followed, up until the
+  request reaches the origin-server (instead of interpreting the first redirect as a
+  response-to-client). Enabling this will buffer the request&#39;s content so that it may be
+  resent on subsequent, post-redirect requests. (This should especially be noted in cases
+  where the request carries sizable content.) False by default</li>
+<li><code>onResponse</code>: Invoked, only once, when a response is first received. It will be passed
+  the response&#39;s status-code and headers. In the case of <code>requestIntoResponse</code>, the caller
+  may modify the received headers or inject new ones prior to them being written</li>
+<li><code>onResponseContent</code>: Invoked, only once, either when response content is first received
+  (response emits a &#39;data&#39; event) or, if there&#39;s no content for the response, when the
+  response ends (emits an &#39;end&#39; event). Note that the handler is invoked <em>before</em> the
+  content is written to given stream / response-to-client. The received data chunk (if
+  there is one involved) is passed to the handler</li>
+<li><code>onClose</code>: Invoked when the underlying connection to the origin-server is terminated
+  before the response ends or is able to flush. The caller may choose to abort the request
+  in case it hasn&#39;t already ended</li>
+<li><code>onError</code>: Invoked in the event of an error related to (emitted by) the origin-server
+  response. The caller may choose to abort the request in case it hasn&#39;t already ended.
+  Note that the caller should primarily listen for errors on the returned
+  <code>http.ClientRequest</code> object. [<em>Disclaimer: The aforementioned response is theoretically
+  susceptible to the class of errors that apply to writable streams. However, at the time
+  of this writing, it is still unclear to the author whether such (or <em>any</em>) errors should
+  be expected on an <code>http.ServerResponse</code>. Are all errors forwarded to the
+  <code>http.ClientResponse</code>?</em>]</li>
+</ul>
+<p>Both methods return the request made - an <code>http.ClientRequest</code>. This is in line with Node&#39;s
+ <a href="http://nodejs.org/api/http.html#http_http_request_options_callback">http.request</a>: The
+ request object may be used to push content to the origin-server, for example as part of a
+ POST. The caller should always <code>end()</code> it (whether it writes any content to the body or
+ not). In the event of an error during the request (be that with DNS resolution, TCP level
+ errors, or actual HTTP parse errors) it will emit an &#39;error&#39; event which the caller is
+ expected to handle</p>
+<h2>requestIntoStream</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-33">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-33">&#182;</a>
+              </div>
+              <p>Make a request to some given host (the &#39;origin-server&#39;) and write received content into
+ given writable stream</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    requestIntoStream = <span class="function"><span class="keyword">function</span> <span class="params">(url, stream, opts)</span> {</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-34">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-34">&#182;</a>
+              </div>
+              <p>Set default options (leave the original <code>opts</code> hash unharmed)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        opts = _({}).defaults(opts, {
+            method: <span class="string">"GET"</span>,
+            headers: {},
+            followRedirects: <span class="literal">false</span>,
+            maxContentLength: Number.POSITIVE_INFINITY,
+            onResponse: noOp,
+            onResponseContent: noOp,
+            onClose: noOp,
+            onError: noOp
+        });
+
+        <span class="keyword">if</span> (_.isString(url)) { url = parseUrl(url); }
+
+        <span class="keyword">var</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-35">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-35">&#182;</a>
+              </div>
+              <p>Request to be made</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            request,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-36">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-36">&#182;</a>
+              </div>
+              <p>Protocol of request to be made</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            protocol = url.protocol &amp;&amp; url.protocol.indexOf(<span class="string">"https"</span>) === <span class="number">0</span> ? <span class="string">"https"</span> : <span class="string">"http"</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-37">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-37">&#182;</a>
+              </div>
+              <p>HTTP/S request method</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            makeRequest = require(protocol).request,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-38">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-38">&#182;</a>
+              </div>
+              <p>Indicates whether (any) response content has been received (&#39;data&#39; event has been
+ emitted) or, if there&#39;s no content for the response, the response has ended (&#39;end&#39;
+ event has been emitted)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            isContentReceived = <span class="literal">false</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-39">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-39">&#182;</a>
+              </div>
+              <p>Keeps track of written content length</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            writtenContentLength = <span class="number">0</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-40">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-40">&#182;</a>
+              </div>
+              <p>Logging function</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            l = logger.createWriter(opts, url),</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-41">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-41">&#182;</a>
+              </div>
+              <p>Handle a new chunk of data acquired from the host, as part of the response.
+ Indicated by a &#39;data&#39; event emitted from the received server-response. The
+ chunk is either a Buffer (by default) or a string if setEncoding() was used.
+ Each chunk is written into <code>stream</code> ad infinitum, until the response ends</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            onResponseData = <span class="function"><span class="keyword">function</span> <span class="params">(chunk)</span> {</span>
+
+                <span class="keyword">if</span> (!isContentReceived) {
+                    isContentReceived = <span class="literal">true</span>;
+                    l(<span class="number">1</span>, <span class="string">"received first response chunk, length: %d octets"</span>, chunk.length);
+                    opts.onResponseContent(chunk);
+                } <span class="keyword">else</span> {
+                    l(<span class="number">2</span>, <span class="string">"received response chunk, length: %d octets"</span>, chunk.length);
+                }
+
+                l(<span class="number">3</span>, <span class="string">"response chunk contents: "</span> + util.inspect(chunk.toString().substr(<span class="number">0</span>, <span class="number">32</span>))); <span class="comment">// TODO: Fix chunk conversion</span>
+
+                stream.write(chunk);
+                writtenContentLength += chunk.length;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-42">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-42">&#182;</a>
+              </div>
+              <p>If length of written content is more the max allowed ..</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                <span class="keyword">if</span> (writtenContentLength &gt;= opts.maxContentLength) {
+                    stream.end();</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-43">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-43">&#182;</a>
+              </div>
+              <p>.. then destroy the connection. This is a bit extreme but node offers no
+ other way of doing it (probably causes a &#39;close&#39; to be dispatched)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                    <span class="keyword">this</span>.connection.destroy();
+                }
+            },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-44">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-44">&#182;</a>
+              </div>
+              <p>Handle the response-end, after which no more data will be received. Indicated
+ by and &#39;end&#39; event emitted from the received server-response. Will just end <code>stream</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            onResponseEnd = <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+                l(<span class="number">1</span>, <span class="string">"response ended, written content length: %d octets"</span>, writtenContentLength);
+                <span class="keyword">if</span> (!isContentReceived) {
+                    isContentReceived = <span class="literal">true</span>;
+                    opts.onResponseContent();
+                }
+
+                l(<span class="number">1</span>, <span class="string">"ending response-to-client"</span>);
+                stream.end();
+            },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-45">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-45">&#182;</a>
+              </div>
+              <p>Handle the termination of the underlying connection to the server before the
+ response ends (before <code>response.end()</code> in called) or is able to flush. Indicated by
+ a &#39;close&#39; event emitted from the received server-response. Delegates to
+ <code>opts.onClose</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            onResponseClose = <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+                l(<span class="number">1</span>, <span class="string">"connection closed (!), written content length: %d octets"</span>, writtenContentLength);
+                opts.onClose();
+            },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-46">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-46">&#182;</a>
+              </div>
+              <p>Handle an &#39;error&#39; event emitted from the response. See earlier <em>Disclaimer</em> about
+ this class of errors</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            onResponseError = <span class="function"><span class="keyword">function</span> <span class="params">(error)</span> {</span>
+                l(<span class="number">1</span>, <span class="string">"response error (!): %j"</span>, error);
+                opts.onError(error);
+            },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-47">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-47">&#182;</a>
+              </div>
+              <p>Request options (a hash of options expected by <code>(http|https).request</code> - not to be
+ confused with the <code>opts</code> hash used in general)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            requestOpts = {
+                method: opts.method,
+                hostname: url.hostname,
+                port: url.port || portForProtocol[protocol],
+                path: url.path,
+                headers: opts.headers
+            };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-48">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-48">&#182;</a>
+              </div>
+              <p>Set a &#39;host&#39; header (mandatory in HTTP/1.1), if not already set</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        _(requestOpts.headers).defaults({
+            host: requestOpts.hostname + <span class="string">":"</span> + requestOpts.port
+        });
+
+        l(<span class="number">1</span>, <span class="string">"requesting %s %s"</span>, opts.method, formatUrl(url));
+        l(<span class="number">2</span>, <span class="string">"request headers: %j"</span>, opts.headers);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-49">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-49">&#182;</a>
+              </div>
+              <p>Make the request and wrap it in a repeatable</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        request = createRepeatableRequest(makeRequest(requestOpts, <span class="function"><span class="keyword">function</span> <span class="params">(response)</span> {</span>
+            l(<span class="number">1</span>, <span class="string">"started receiving response, status: %d %s"</span>, response.statusCode, statusCodeDescrs[response.statusCode]);
+            l(<span class="number">2</span>, <span class="string">"response headers: %j"</span>, response.headers);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-50">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-50">&#182;</a>
+              </div>
+              <p>Check whether we&#39;ll have to follow a redirect</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">if</span> (opts.followRedirects &amp;&amp; isRedirectStatusCode(response.statusCode)) {</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-51">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-51">&#182;</a>
+              </div>
+              <p>We&#39;ll buffer the redirect response. This is non-essential as the only thing
+ needed to follow the redirect is the &#39;location&#39; header. The actual content of
+ the response is not of any use</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                l(<span class="number">2</span>, <span class="string">"will buffer-and-discard redirect-response"</span>);
+                bufferResponseContent(response, {
+                    logContext: opts.logContext,
+                    onEnd: <span class="function"><span class="keyword">function</span> <span class="params">(buffer, length)</span> {</span>
+                        l(<span class="number">2</span>, <span class="string">"redirect-response ended, content length: %d octets"</span>, length);
+                    },
+                    onClose: <span class="function"><span class="keyword">function</span> <span class="params">(buffer, length)</span> {</span>
+                        l(<span class="number">2</span>, <span class="string">"redirect-response connection closed (!), content length: %d octets"</span>, length);
+                    },
+                    onError: <span class="function"><span class="keyword">function</span> <span class="params">(error, buffer, length)</span> {</span>
+                        l(<span class="number">2</span>, <span class="string">"error on redirect-response (!): %j, content length: %d octets"</span>, error, length);
+                    }
+                });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-52">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-52">&#182;</a>
+              </div>
+              <p>Follow the redirect by recursing. Pass the same options that were in effect
+ for the current invocation but remove the &#39;host&#39; header. In absense, it will be
+ correctly set to the proper host based on the request URL</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                <span class="keyword">var</span> redirectUrl = parseUrl(response.headers.location),
+                    redirectOpts = _({}).extend(opts, {
+                        headers: _({}).extend(opts.headers)
+                    });
+                <span class="keyword">delete</span> redirectOpts.headers.host;
+
+                l(<span class="number">1</span>, <span class="string">"will follow redirect to %s"</span>, response.headers.location);
+                requestIntoStream(redirectUrl, stream, redirectOpts).end(request.buffer.slice(<span class="number">0</span>, request.writtenContentLength));
+                <span class="keyword">return</span>;
+            }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-53">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-53">&#182;</a>
+              </div>
+              <p>Okay, so we&#39;re not following a redirect. First of all, notify the caller of received
+ response (status code &amp; headers) ..</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            opts.onResponse(response.statusCode, response.headers);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-54">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-54">&#182;</a>
+              </div>
+              <p>.. and then just pump data from the response into the stream</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            response.on(<span class="string">"data"</span>, onResponseData);
+            response.on(<span class="string">"error"</span>, onResponseError);
+            response.once(<span class="string">"end"</span>, onResponseEnd);
+            response.once(<span class="string">"close"</span>, onResponseClose);
+        }));</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-55">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-55">&#182;</a>
+              </div>
+              <p>Return the request to caller. Note that this may emit an &#39;error&#39; event (indicating an
+ error during the request to the origin-server) which the caller is expected to handle</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="keyword">return</span> request;
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-56">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-56">&#182;</a>
+              </div>
+              <h2>requestIntoResponse</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-57">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-57">&#182;</a>
+              </div>
+              <p>Make a request to some given host (the &#39;origin-server&#39;) and write received data into given
+ response (<code>http.ServerResponse</code>)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    requestIntoResponse = <span class="function"><span class="keyword">function</span> <span class="params">(url, responseToClient, opts)</span> {</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-58">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-58">&#182;</a>
+              </div>
+              <p>Set default options (leave the original <code>opts</code> hash unharmed)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        opts = _({}).defaults(opts, {
+            method: <span class="string">"GET"</span>,
+            maxContentLength: Number.POSITIVE_INFINITY,
+            onResponse: noOp,
+            onResponseContent: noOp
+        });
+
+        <span class="keyword">var</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-59">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-59">&#182;</a>
+              </div>
+              <p>The response status-code - to be forwarded to response-to-client</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            statusCode,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-60">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-60">&#182;</a>
+              </div>
+              <p>The response headers - to be forwarded to response-to-client</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            headers,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-61">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-61">&#182;</a>
+              </div>
+              <p>Save references to handlers provided by caller (or previously defaulted to no-ops)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            onResponse = opts.onResponse,
+            onResponseContent = opts.onResponseContent,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-62">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-62">&#182;</a>
+              </div>
+              <p>Logging function</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            l = logger.createWriter(opts, _.isString(url) ? parseUrl(url) : url);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-63">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-63">&#182;</a>
+              </div>
+              <p>When status-code and headers are received on the response</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        opts.onResponse = <span class="function"><span class="keyword">function</span> <span class="params">(responseStatusCode, responseHeaders)</span> {</span>
+            headers = _.clone(responseHeaders);
+            statusCode = responseStatusCode;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-64">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-64">&#182;</a>
+              </div>
+              <p>Tweak the &#39;content-length&#39; header (if present) to reflect the modified content
+ length in case <em>it was indeed</em> truncated due to <code>maxContentLength</code> option</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">var</span> contentLength = headers[<span class="string">"content-length"</span>] ?
+                parseInt(headers[<span class="string">"content-length"</span>], <span class="number">10</span>) : -<span class="number">1</span>;
+
+            <span class="keyword">if</span> (contentLength &gt; opts.maxContentLength) {
+                headers[<span class="string">"content-length"</span>] = opts.maxContentLength;
+            }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-65">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-65">&#182;</a>
+              </div>
+              <p>Invoke given <code>onResponse</code>. Client-code may modify the headers even further</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            onResponse(statusCode, headers);
+        };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-66">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-66">&#182;</a>
+              </div>
+              <p>When content is first written to the response or the response ends, write the headers
+to the response-to-client. This is as late as this can be done. (note that the handler is
+ invoked <em>just before</em> any content is written to response-to-client)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        opts.onResponseContent = <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+            l(<span class="number">1</span>, <span class="string">"writing response status code (%d) and headers to response-to-client"</span>, statusCode);
+            responseToClient.writeHead(statusCode, headers);
+        };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-67">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-67">&#182;</a>
+              </div>
+              <p>Write content to response - return the request to caller. Note that the request may
+ emit an &#39;error&#39; event (indicating an error during the request to the origin-server)
+ which the caller is expected to handle</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="keyword">return</span> requestIntoStream(url, responseToClient, opts);
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-68">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-68">&#182;</a>
+              </div>
+              <h2>request</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-69">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-69">&#182;</a>
+              </div>
+              <p>Delegates to <code>requestIntoStream</code> or <code>requestIntoResponse</code> depending on given whether given
+ <code>rspOrStrm</code> is a writeable stream or response (<code>http.ServerResponse</code>)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    request = <span class="function"><span class="keyword">function</span> <span class="params">(url, rspOrStrm, opts)</span> {</span>
+        <span class="keyword">return</span> (rspOrStrm <span class="keyword">instanceof</span> http.ServerResponse ?
+            requestIntoResponse : requestIntoStream)(url, rspOrStrm, opts);
+    },</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-70">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-70">&#182;</a>
+              </div>
+              <h2>forward</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-71">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-71">&#182;</a>
+              </div>
+              <p>Forward a client request (<code>http.IncomingMessage</code>) to indicated server (the &#39;origin-server&#39;)
+ and write received data into given response (<code>http.ServerResponse</code>). Particularly
+ applicable in proxying scenarios</p>
+<p>The <code>opts</code> parameter includes all options applicable to &#39;requestInto<em>__</em>&#39; methods with the
+ (nonmandatory) addition of a <code>url</code> option:</p>
+<ul>
+<li>In absense of this, requests will be forwarded to the original URL, i.e. <code>request.url</code>.
+ Suitable for authoring a forward proxy.</li>
+<li>If <code>opts.url</code> is present, the request&#39;s original URL will be overriden, effectively
+ forwarding to a different host. This will also force an appropriately modified &#39;host&#39;
+ header derived from the URL. The caller may enforce a <em>specific</em> &#39;host&#39; by use of
+ <code>opts.headers</code>. This method of forwarding is suited to authoring a reverse proxy.</li>
+</ul>
+<p>It should be noted that in the case of <code>forward</code>, the headers provided by use of
+ <code>opts.headers</code> act as overrides. That is to say, the forwarded request will include <em>all</em>
+ of the original request&#39;s headers, either extended or overriden by those present in
+ <code>opts.headers</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    forward = <span class="function"><span class="keyword">function</span> <span class="params">(requestFromClient, responseToClient, opts)</span> {</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-72">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-72">&#182;</a>
+              </div>
+              <p>Build request options. <code>method</code> is defaulted to the original request&#39;s method if not
+ given. The headers will be dealt with further down. (the original <code>opts</code> hash is left
+ unharmed)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        opts = _({}).defaults(opts, {
+            method: requestFromClient.method,
+            headers: {}
+        });
+
+        <span class="keyword">var</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-73">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-73">&#182;</a>
+              </div>
+              <p>Indicates whether a &#39;host&#39; header was present in original <code>opts.headers</code>. This is
+ important in case <code>opts</code> also has a <code>url</code> member: The &#39;host&#39; header <em>when
+ explicitly set by the caller through options</em> will override the host derived from
+ <code>opts.url</code></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            isHostHeaderGivenInOptions = !!opts.headers.host,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-74">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-74">&#182;</a>
+              </div>
+              <p>The request to make to origin-server</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            req = <span class="literal">null</span>,</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-75">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-75">&#182;</a>
+              </div>
+              <p>URL of the request to make to origin-server</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            url = parseUrl(requestFromClient.url),</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-76">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-76">&#182;</a>
+              </div>
+              <p>Logging function</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            l = logger.createWriter(opts, url);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-77">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-77">&#182;</a>
+              </div>
+              <p>As for the headers, we start off with the original request&#39;s headers and then
+ extend / override them with headers present on <code>opts</code>, if any are given. </p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        opts.headers = _({}).extend(requestFromClient.headers, opts.headers);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-78">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-78">&#182;</a>
+              </div>
+              <p>Abort the request if the underlying connection to the origin-server is terminated before
+ the response ends / is able to flush or an error occurs (is emitted by) the response
+ itself</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        opts.onClose = <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span> req.abort(); };
+        opts.onError = <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span> req.abort(); };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-79">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-79">&#182;</a>
+              </div>
+              <p>The presence of an <code>opts.url</code> will cause the URL of the original request to be
+ overriden. In this case the &#39;host&#39; header will also be reset <em>but only if it wasn&#39;t
+ explicitly set by the caller through options</em></p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="keyword">if</span> (opts.url) {
+            url = _.isString(opts.url) ? parseUrl(opts.url) : opts.url;
+            <span class="keyword">if</span> (!isHostHeaderGivenInOptions) { opts.headers.host = url.host; }
+        }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-80">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-80">&#182;</a>
+              </div>
+              <p>Forward the request</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        req = requestIntoResponse(url, responseToClient, opts);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-81">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-81">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        requestFromClient.once(<span class="string">"end"</span>, <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+            l(<span class="number">1</span>, <span class="string">"request-from-client ended -&gt; ending request"</span>);
+            req.end();
+        });
+
+        requestFromClient.once(<span class="string">"close"</span>, <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span>
+            l(<span class="number">1</span>, <span class="string">"request-from-client closed (!) -&gt; ending request"</span>);
+            req.end();
+        });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-82">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-82">&#182;</a>
+              </div>
+              <p>In the case of error on the client request, abort</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        requestFromClient.on(<span class="string">"error"</span>, <span class="function"><span class="keyword">function</span> <span class="params">(error)</span> {</span>
+            l(<span class="number">1</span>, <span class="string">"request-from-client error (!): %j -&gt; aborting request"</span>, error);
+            req.abort();
+        });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-83">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-83">&#182;</a>
+              </div>
+              <p>Forward content data until content ends</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        requestFromClient.on(<span class="string">"data"</span>, <span class="function"><span class="keyword">function</span> <span class="params">(chunk)</span> {</span> req.write(chunk); });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-84">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-84">&#182;</a>
+              </div>
+              <p>In case of a closed connection, just log</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        req.on(<span class="string">"close"</span>, <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span> l(<span class="number">1</span>, <span class="string">"request closed (!)"</span>); });</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-85">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-85">&#182;</a>
+              </div>
+              <p>In case of error on the forwarded request (DNS resolution, TCP level, HTTP parse..),
+ respond to the client with a 500, containing the actual error message. This is (at
+ least in some cases) followed by a &#39;close&#39; event</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        req.on(<span class="string">"error"</span>, <span class="function"><span class="keyword">function</span> <span class="params">(error)</span> {</span>
+            l(<span class="number">1</span>, <span class="string">"request error (!): %j -&gt; ending response-to-client with 500"</span>, error);
+            responseToClient.writeHead(<span class="number">500</span>, { <span class="string">'Content-Type'</span>: <span class="string">'text/plain'</span> });
+            responseToClient.write(<span class="string">"Error: "</span> + JSON.stringify(error));
+            responseToClient.end();
+        });
+    };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-86">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-86">&#182;</a>
+              </div>
+              <p>Export module&#39;s methods and properties</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>exports.bufferResponseContent = bufferResponseContent;
+exports.request               = request;
+exports.forward               = forward;
+exports.requestIntoResponse   = requestIntoResponse;
+exports.requestIntoStream     = requestIntoStream;
+Object.defineProperties(exports, {
+    version: { get: <span class="function"><span class="keyword">function</span> <span class="params">()</span> {</span> <span class="keyword">return</span> <span class="string">"0.1.0"</span>; } }, <span class="comment">// Keep version in sync with package.json</span>
+    logLevel: { set: <span class="function"><span class="keyword">function</span> <span class="params">(value)</span> {</span> logger.setLevel(value); } }
+});</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>
