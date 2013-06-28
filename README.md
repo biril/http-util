@@ -23,8 +23,13 @@ var httpUtil = require("http-util");
 console.log("HTTP Util version: " + httpUtil.version);
 ```
 
+
 Reference
 ---------
+
+The module's public API consists primarily of the `request` and `forward` methods which are
+described here. An [annotated version](http://biril.github.io/http-util/) of the source is also
+maintained as a complete reference.
 
 ### request (url, rspOrStr[, opts]) → http.ClientRequest
 
@@ -80,8 +85,8 @@ Forward a client request (`http.IncomingMessage`) to indicated server (the 'orig
  write received data into given response (`http.ServerResponse`). Particularly applicable in
  proxying scenarios
 
-The `opts` parameter includes all options applicable to `request` with the (nonmandatory) addition
- of a `url` option:
+The `opts` parameter includes all options applicable to the request method with the (nonmandatory)
+ addition of a `url` option:
 
 * In absense of this, requests will be forwarded to the original URL, i.e. `request.url`. Suitable
    for authoring a forward proxy.
