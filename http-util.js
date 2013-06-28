@@ -1,4 +1,4 @@
-//     HTTP Util v0.1.0
+//     HTTP Util v0.1.1
 
 //     https://github.com/biril/http-util
 //     Licensed under the MIT License
@@ -641,6 +641,6 @@ exports.forward               = forward;
 exports.requestIntoResponse   = requestIntoResponse;
 exports.requestIntoStream     = requestIntoStream;
 Object.defineProperties(exports, {
-    version: { get: function () { return "0.1.0"; } }, // Keep version in sync with package.json
+    version: { get: function () { return "0.1.1"; } }, // Keep version in sync with package.json
     logLevel: { set: function (value) { logger.setLevel(value); } }
 });

@@ -1,6 +1,6 @@
 {
   "name": "http-util",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "biril <alexlambiris@gmail.com>",
   "description": "Miscelaneous HTTP/S utilities",
   "contributors": [],
