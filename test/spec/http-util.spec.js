@@ -14,7 +14,7 @@ describe("HTTP util", function () {
         httpUtil = require(__dirname + "/../../http-util.js"),
         testFilePath = __dirname + "/../test.jpg";
 
-    httpUtil.logLevel = 5;
+    httpUtil.logLevel = 1;
 
     beforeEach(function() {
         this.addMatchers({
