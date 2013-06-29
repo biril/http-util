@@ -272,91 +272,7 @@ describe("HTTP util", function () {
 
                 ////
                 ////
-                redirectStatusCodes.forEach(function (statusCode) {
-                    it("should return response, following a single redirect (" + statusCode + ", " + httpStatusCodeDescrs[statusCode] + ")", function() {
-                        var redirectingHost, originHost;
-
-                        runs(function () {
-                            redirectingHost = nock("http://redirectinghost")
-                                .intercept(reqResourcePath, transaction.req.method)
-                                .reply(statusCode, httpStatusCodeDescrs[statusCode], { Location: "http://originhost/some/resource"});
-
-                            originHost = nock("http://originhost")
-                                .intercept(reqResourcePath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
-                                .reply(transaction.rsp.statusCode, transaction.rsp.content);
-
-                            responseContentStream = concat(function (buffer) {
-                                responseContent = buffer;
-                            });
-
-                            request = httpUtil.request("http://redirectinghost" + reqResourcePath, responseContentStream, {
-                                method: transaction.req.method,
-                                followRedirects: true,
-                                onResponse: function (statusCode) { responseStatusCode = statusCode; }
-                            });
-
-                            writeRequestBody(transaction.req.body, request);
-                        });
-
-                        waitsFor(function () {
-                            return responseStatusCode && (transaction.rsp.content.length === 0 || responseContent);
-                        }, "response-content to become available", 750);
-
-                        runs(function () {
-                            expect(responseStatusCode).toBe(transaction.rsp.statusCode);
-                            expect(responseContent.toString()).toEqual(transaction.rsp.content);
-                            redirectingHost.done();
-                            originHost.done();
-                        });
-                    });
-
-                    it("should return response with extended content, following a single redirect (" + statusCode + ", " + httpStatusCodeDescrs[statusCode] + ")", function() {
-                        var redirectingHost, originHost, resourceContent;
-
-                        runs(function () {
-                            redirectingHost = nock("http://redirectinghost")
-                                .intercept(reqResourcePath, transaction.req.method)
-                                .reply(statusCode, httpStatusCodeDescrs[statusCode], { Location: "http://originhost/some/resource"});
-
-                            originHost = nock("http://originhost")
-                                .intercept(reqResourcePath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
-                                .replyWithFile(transaction.rsp.statusCode, testFilePath);
-
-                            fs.readFile(testFilePath, function (error, buffer) { resourceContent = buffer; });
-
-                            responseContentStream = concat(function (buffer) {
-                                responseContent = buffer;
-                            });
-
-                            request = httpUtil.request("http://redirectinghost" + reqResourcePath, responseContentStream, {
-                                protocol: "http",
-                                hostname: "redirectinghost",
-                                method: transaction.req.method,
-                                path: reqResourcePath,
-                                followRedirects: true,
-                                onResponse: function (statusCode) { responseStatusCode = statusCode; }
-                            });
-
-                            writeRequestBody(transaction.req.body, request);
-                        });
-
-                        waitsFor(function () {
-                            return responseStatusCode && resourceContent && responseContent;
-                        }, "response-content to become available", 750);
-
-                        runs(function () {
-                            expect(responseStatusCode).toBe(transaction.rsp.statusCode);
-                            expect(responseContent).toContainAllElementsOf(resourceContent);
-                            redirectingHost.done();
-                            originHost.done();
-                        });
-                    });
-                });
-
-
-                ////
-                ////
-                it("should return response following multiple redirects (" + redirectStatusCodes.join(", ") + ")", function() {
+                it("should return response when following redirects (" + redirectStatusCodes.join(", ") + ")", function() {
                     var redirectingHosts = [], originHost;
 
                     runs(function () {
@@ -400,7 +316,7 @@ describe("HTTP util", function () {
 
                 ////
                 ////
-                it("should return response with extended content, following multiple redirects (" + redirectStatusCodes.join(", ") + ")", function() {
+                it("should return response with extended content, when following redirects (" + redirectStatusCodes.join(", ") + ")", function() {
                     var redirectingHosts = [], originHost, resourceContent;
 
                     runs(function () {
