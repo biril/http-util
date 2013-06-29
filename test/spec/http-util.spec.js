@@ -8,7 +8,7 @@ describe("HTTP util", function () {
         nock = require("nock"),
         util = require("util"),
         http = require("http"),
-        https = require("https"),
+        // https = require("https"),
         fs = require("fs"),
         concat = require("concat-stream"),
         httpUtil = require(__dirname + "/../../http-util.js"),
@@ -18,6 +18,9 @@ describe("HTTP util", function () {
 
     beforeEach(function() {
         this.addMatchers({
+
+            // A matcher which checks whether _this_ buffer contains all elements of
+            //  _expected_ buffer
             toContainAllElementsOf: function(expected) {
                 var expectedLength = expected.length,
                     actualLength = this.actual.length,
@@ -43,109 +46,113 @@ describe("HTTP util", function () {
         });
     });
 
+    // A couple of preliminary tests. Basically make sure the world is a sane place before going
+    //  into stuff of actual importance
     it("should be exported", function() {
         expect(httpUtil).toBeDefined();
     });
-
     it("should report its version", function() {
         expect(httpUtil.version).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
+
+    ////
+    //// Specs for the exported `httpUtil.bufferResponseContent` API
     describe("/ bufferResponseContent", function () {
 
         it("should buffer response-content when content-length header is present", function () {
-            var originHost, responseStatusCode, bufferedResponseContent, resourceContent = "Small Resource";
+            var originHost, rspStatusCode, bufferedRspContent, rsrcContent = "Small Resource";
 
             runs(function () {
                 originHost = nock("http://originhost")
                     .get("/resource/small")
-                    .reply(200, resourceContent, { "content-length": resourceContent.length });
+                    .reply(200, rsrcContent, { "content-length": rsrcContent.length });
 
                 http.request("http://originhost/resource/small", function (response) {
 
-                    responseStatusCode = response.statusCode;
+                    rspStatusCode = response.statusCode;
 
                     httpUtil.bufferResponseContent(response, {
                         onEnd: function (buffer, writtenContentLength) {
-                            bufferedResponseContent = buffer.slice(0, writtenContentLength).toString();
+                            bufferedRspContent = buffer.slice(0, writtenContentLength).toString();
                         }
                     });
                 }).end();
             });
 
             waitsFor(function () {
-                return bufferedResponseContent;
+                return bufferedRspContent;
             }, "response-content to become available", 750);
 
             runs(function () {
-                expect(responseStatusCode).toBe(200);
-                expect(bufferedResponseContent).toEqual(resourceContent);
+                expect(rspStatusCode).toBe(200);
+                expect(bufferedRspContent).toEqual(rsrcContent);
                 originHost.done();
             });
         });
 
         it("should buffer response-content when content-length header is absent", function () {
-            var originHost, responseStatusCode, bufferedResponseContent, resourceContent = "Small Resource";
+            var originHost, rspStatusCode, bufferedRspContent, rsrcContent = "Small Resource";
 
             runs(function () {
                 originHost = nock("http://originhost")
                     .get("/resource/small")
-                    .reply(200, resourceContent);
+                    .reply(200, rsrcContent);
 
                 http.request("http://originhost/resource/small", function (response) {
 
-                    responseStatusCode = response.statusCode;
+                    rspStatusCode = response.statusCode;
 
                     httpUtil.bufferResponseContent(response, {
                         onEnd: function (buffer, writtenContentLength) {
-                            bufferedResponseContent = buffer.slice(0, writtenContentLength).toString();
+                            bufferedRspContent = buffer.slice(0, writtenContentLength).toString();
                         }
                     });
                 }).end();
             });
 
             waitsFor(function () {
-                return bufferedResponseContent;
+                return bufferedRspContent;
             }, "response-content to become available", 750);
 
             runs(function () {
-                expect(responseStatusCode).toBe(200);
-                expect(bufferedResponseContent).toEqual(resourceContent);
+                expect(rspStatusCode).toBe(200);
+                expect(bufferedRspContent).toEqual(rsrcContent);
                 originHost.done();
             });
         });
 
         it("should buffer extended response-content when content-length header is absent", function () {
             var originHost,
-                responseStatusCode,
-                bufferedResponseContent,
-                resourceContent;
+                rspStatusCode,
+                bufferedRspContent,
+                rsrcContent;
 
             runs(function () {
                 originHost = nock("http://originhost")
                     .get("/resource/small")
                     .replyWithFile(200, testFilePath);
 
-                fs.readFile(testFilePath, function (error, buffer) { resourceContent = buffer; });
+                fs.readFile(testFilePath, function (error, buffer) { rsrcContent = buffer; });
 
                 http.request("http://originhost/resource/small", function (response) {
 
-                    responseStatusCode = response.statusCode;
+                    rspStatusCode = response.statusCode;
 
                     httpUtil.bufferResponseContent(response, {
                         onEnd: function (buffer, writtenContentLength) {
-                            bufferedResponseContent = buffer.slice(0, writtenContentLength);
+                            bufferedRspContent = buffer.slice(0, writtenContentLength);
                         }
                     });
                 }).end();
 
                 waitsFor(function () {
-                    return resourceContent && bufferedResponseContent;
+                    return rsrcContent && bufferedRspContent;
                 }, "response-content to become available", 750);
 
                 runs(function () {
-                    expect(responseStatusCode).toBe(200);
-                    expect(bufferedResponseContent).toContainAllElementsOf(resourceContent);
+                    expect(rspStatusCode).toBe(200);
+                    expect(bufferedRspContent).toContainAllElementsOf(rsrcContent);
                     originHost.done();
                 });
             });
@@ -153,33 +160,54 @@ describe("HTTP util", function () {
 
     }); // describe("/ bufferResponseContent", ..
 
+
+    ////
+    //// Specs for the exported `httpUtil.request` API
     describe("/ request", function() {
 
         var redirectStatusCodes = [300, 301, 302, 303, 307],
-            request, responseStatusCode, responseContentStream, responseContent,
 
-            // The path of requested resource will be the same in every request
-            reqResourcePath = "/some/resource",
+            // The following objects will be (re)used in all `request` specs. They'll be reset to
+            //  null before each spec (see `beforeEach`). `req` is the request itself.
+            //  `rspStatusCode` is the status-code returned as part of the response.
+            //  `rspContenStream` is a writable stream always passed to `request` to write the
+            //  response into. (We're currently using Max Ogden's `ConcatStream` for this). Finally,
+            //  `rspContent` is the response after it's been fully streamed and converted (from a
+            //  writable stream) to a plain buffer
+            req,
+            rspStatusCode,
+            rspContentStream,
+            rspContent,
 
-            // Define a number of 'transactions' (request - response pairs) to test
+            // We'll reuse "/some/resource" as the path of the requested-resource and "Some
+            //  Resourse" as the requested-resource-content in (nearly) all specs - these are
+            //  basically used as constants
+            reqRsrcPath = "/some/resource",
+            reqRsrcContent = "Some Resource",
+
+            // Define a number of 'transactions' (request - response pairs) to test. The `req.body`
+            //  array defines the request body (which is actually _expected_ on the server side).
+            //  Each array element will be separately written to the request before it `end()`s.
+            //  That is to say, each element will involve a _seperate_ call to `write()` and every
+            //  call will happen on a timer. This process is implemented by `writeRequestBody` below
             transactions = [{
                 req: { method: "GET" },
-                rsp: { statusCode: 200, content: "Some Content" }
+                rsp: { statusCode: 200, content: reqRsrcContent }
             }, {
                 req: { method: "GET" },
-                rsp: { statusCode: 404, content: "" }
+                rsp: { statusCode: 404, content: "Oops: Not found" }
             }, {
                 req: { method: "POST" },
-                rsp: { statusCode: 200, content: "Some Content" }
+                rsp: { statusCode: 200, content: reqRsrcContent }
             }, {
                 req: { method: "GET", body: ["please"] },
-                rsp: { statusCode: 200, content: "Some Content" }
+                rsp: { statusCode: 200, content: reqRsrcContent }
             }, {
                 req: { method: "GET", body: ["pretty", "please"] },
-                rsp: { statusCode: 200, content: "Some Content" }
+                rsp: { statusCode: 200, content: reqRsrcContent }
             }, {
                 req: { method: "GET", body: ["pretty", "please", "withcherries"] },
-                rsp: { statusCode: 200, content: "Some Content" }
+                rsp: { statusCode: 200, content: reqRsrcContent }
             }],
             writeRequestBody = function (requestBodyParts, request) {
                 if (!requestBodyParts || !requestBodyParts.length) { return request.end(); }
@@ -188,10 +216,10 @@ describe("HTTP util", function () {
             };
 
         beforeEach(function () {
-            request = null;
-            responseStatusCode = null;
-            responseContentStream = null;
-            responseContent = null;
+            req = null;
+            rspStatusCode = null;
+            rspContentStream = null;
+            rspContent = null;
         });
 
 
@@ -199,79 +227,79 @@ describe("HTTP util", function () {
 
             describe("for transaction " + JSON.stringify(transaction), function () {
 
-                ////
-                ////
+                // `request` should acquire response with simple ransaction-defined content when
+                //  no redirects happen before reaching the origin server
                 it("should return response", function() {
 
                     var originHost;
 
                     runs(function () {
                         originHost = nock("http://originhost")
-                            .intercept(reqResourcePath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
+                            .intercept(reqRsrcPath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
                             .reply(transaction.rsp.statusCode, transaction.rsp.content);
 
-                        responseContentStream = concat(function (buffer) {
-                            responseContent = buffer;
+                        rspContentStream = concat(function (buffer) {
+                            rspContent = buffer;
                         });
 
-                        request = httpUtil.request("http://originhost" + reqResourcePath, responseContentStream, {
+                        req = httpUtil.request("http://originhost" + reqRsrcPath, rspContentStream, {
                             method: transaction.req.method,
-                            onResponse: function (statusCode) { responseStatusCode = statusCode; }
+                            onResponse: function (statusCode) { rspStatusCode = statusCode; }
                         });
 
-                        writeRequestBody(transaction.req.body, request);
+                        writeRequestBody(transaction.req.body, req);
                     });
 
                     waitsFor(function () {
-                        return responseStatusCode && (transaction.rsp.content.length === 0 || responseContent);
+                        return rspStatusCode && (transaction.rsp.content.length === 0 || rspContent);
                     }, "response-content to become available", 750);
 
                     runs(function () {
-                        expect(responseStatusCode).toBe(transaction.rsp.statusCode);
-                        expect(responseContent.toString()).toEqual(transaction.rsp.content);
+                        expect(rspStatusCode).toBe(transaction.rsp.statusCode);
+                        expect(rspContent.toString()).toEqual(transaction.rsp.content);
                         originHost.done();
                     });
                 });
 
-                ////
-                ////
+                // `request` should acquire response with extended content (test.jpg bitmap data)
+                //  when no redirects happen before reaching the origin server
                 it("should return response with extended content", function() {
 
-                    var originHost, resourceContent;
+                    var originHost, rsrcContent;
 
                     runs(function () {
                         originHost = nock("http://originhost")
-                            .intercept(reqResourcePath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
+                            .intercept(reqRsrcPath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
                             .replyWithFile(transaction.rsp.statusCode, testFilePath);
 
-                        responseContentStream = concat(function (buffer) {
-                            responseContent = buffer;
+                        rspContentStream = concat(function (buffer) {
+                            rspContent = buffer;
                         });
 
-                        fs.readFile(testFilePath, function (error, buffer) { resourceContent = buffer; });
+                        fs.readFile(testFilePath, function (error, buffer) { rsrcContent = buffer; });
 
-                        request = httpUtil.request("http://originhost" + reqResourcePath, responseContentStream, {
+                        req = httpUtil.request("http://originhost" + reqRsrcPath, rspContentStream, {
                             method: transaction.req.method,
-                            onResponse: function (statusCode) { responseStatusCode = statusCode; }
+                            onResponse: function (statusCode) { rspStatusCode = statusCode; }
                         });
 
-                        writeRequestBody(transaction.req.body, request);
+                        writeRequestBody(transaction.req.body, req);
                     });
 
                     waitsFor(function () {
-                        return responseStatusCode && responseContent && resourceContent;
+                        return rspStatusCode && rspContent && rsrcContent;
                     }, "response-content to become available", 750);
 
                     runs(function () {
-                        expect(responseStatusCode).toBe(transaction.rsp.statusCode);
-                        expect(responseContent).toContainAllElementsOf(resourceContent);
+                        expect(rspStatusCode).toBe(transaction.rsp.statusCode);
+                        expect(rspContent).toContainAllElementsOf(rsrcContent);
                         originHost.done();
                     });
                 });
 
 
-                ////
-                ////
+                // `request` should acquire response with simple ransaction-defined content when
+                //  a number of redirects take place before reaching the origin server
                 it("should return response when following redirects (" + redirectStatusCodes.join(", ") + ")", function() {
                     var redirectingHosts = [], originHost;
 
@@ -280,86 +308,86 @@ describe("HTTP util", function () {
                         for (i = 0, l = redirectStatusCodes.length; i < l; ++i) {
                             redirectLocation = (i + 1) === l ? "http://originhost/some/resource" : "http://redirectinghost" + (i + 1) + "/some/resource";
                             redirectingHosts.push(nock("http://redirectinghost" + i)
-                                .intercept(reqResourcePath, transaction.req.method)
+                                .intercept(reqRsrcPath, transaction.req.method)
                                 .reply(redirectStatusCodes[i], httpStatusCodeDescrs[redirectStatusCodes[i]], { Location: redirectLocation }));
                         }
 
                         originHost = nock("http://originhost")
-                            .intercept(reqResourcePath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
+                            .intercept(reqRsrcPath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
                             .reply(transaction.rsp.statusCode, transaction.rsp.content);
 
-                        responseContentStream = concat(function (buffer) {
-                            responseContent = buffer;
+                        rspContentStream = concat(function (buffer) {
+                            rspContent = buffer;
                         });
 
-                        request = httpUtil.request("http://redirectinghost0" + reqResourcePath, responseContentStream, {
+                        req = httpUtil.request("http://redirectinghost0" + reqRsrcPath, rspContentStream, {
                             method: transaction.req.method,
                             followRedirects: true,
-                            onResponse: function (statusCode) { responseStatusCode = statusCode; }
+                            onResponse: function (statusCode) { rspStatusCode = statusCode; }
                         });
 
-                        writeRequestBody(transaction.req.body, request);
+                        writeRequestBody(transaction.req.body, req);
                     });
 
                     waitsFor(function () {
-                        return responseStatusCode && (transaction.rsp.content.length === 0 || responseContent);
+                        return rspStatusCode && (transaction.rsp.content.length === 0 || rspContent);
                     }, "response-content to become available", 750);
 
                     runs(function () {
-                        expect(responseStatusCode).toBe(transaction.rsp.statusCode);
-                        expect(responseContent.toString()).toEqual(transaction.rsp.content);
+                        expect(rspStatusCode).toBe(transaction.rsp.statusCode);
+                        expect(rspContent.toString()).toEqual(transaction.rsp.content);
                         redirectingHosts.forEach(function (redirectingHost) { redirectingHost.done(); });
                         originHost.done();
                     });
                 });
 
 
-                ////
-                ////
+                // `request` should acquire response with extended content (test.jpg bitmap data)
+                //  a number of redirects take place before reaching the origin server
                 it("should return response with extended content, when following redirects (" + redirectStatusCodes.join(", ") + ")", function() {
-                    var redirectingHosts = [], originHost, resourceContent;
+                    var redirectingHosts = [], originHost, rsrcContent;
 
                     runs(function () {
                         var redirectLocation, i, l;
                         for (i = 0, l = redirectStatusCodes.length; i < l; ++i) {
                             redirectLocation = (i + 1) === l ? "http://originhost/some/resource" : "http://redirectinghost" + (i + 1) + "/some/resource";
                             redirectingHosts.push(nock("http://redirectinghost" + i)
-                                .intercept(reqResourcePath, transaction.req.method)
+                                .intercept(reqRsrcPath, transaction.req.method)
                                 .reply(redirectStatusCodes[i], httpStatusCodeDescrs[redirectStatusCodes[i]], { Location: redirectLocation }));
                         }
 
                         originHost = nock("http://originhost")
-                            .intercept(reqResourcePath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
+                            .intercept(reqRsrcPath, transaction.req.method, transaction.req.body ? transaction.req.body.join("") : undefined)
                             .replyWithFile(transaction.rsp.statusCode, testFilePath);
 
-                        fs.readFile(testFilePath, function (error, buffer) { resourceContent = buffer; });
+                        fs.readFile(testFilePath, function (error, buffer) { rsrcContent = buffer; });
 
-                        responseContentStream = concat(function (buffer) {
-                            responseContent = buffer;
+                        rspContentStream = concat(function (buffer) {
+                            rspContent = buffer;
                         });
 
-                        request = httpUtil.request("http://redirectinghost0" + reqResourcePath, responseContentStream, {
+                        req = httpUtil.request("http://redirectinghost0" + reqRsrcPath, rspContentStream, {
                             method: transaction.req.method,
                             followRedirects: true,
-                            onResponse: function (statusCode) { responseStatusCode = statusCode; }
+                            onResponse: function (statusCode) { rspStatusCode = statusCode; }
                         });
 
-                        writeRequestBody(transaction.req.body, request);
+                        writeRequestBody(transaction.req.body, req);
                     });
 
                     waitsFor(function () {
-                        return responseStatusCode && resourceContent && responseContent;
+                        return rspStatusCode && rsrcContent && rspContent;
                     }, "response-content to become available", 750);
 
                     runs(function () {
-                        expect(responseStatusCode).toBe(transaction.rsp.statusCode);
-                        expect(responseContent).toContainAllElementsOf(resourceContent);
+                        expect(rspStatusCode).toBe(transaction.rsp.statusCode);
+                        expect(rspContent).toContainAllElementsOf(rsrcContent);
                         redirectingHosts.forEach(function (redirectingHost) { redirectingHost.done(); });
                         originHost.done();
                     });
                 });
 
-            }); // describe("when origin-host response is ...
-        }); // replies.forEach
+            }); // describe("for transaction ...
+        }); // transactions.forEach
     }); // describe("/ request", ..
 }); // describe("HTTP util", ...
