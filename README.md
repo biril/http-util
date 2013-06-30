@@ -156,9 +156,18 @@ http.createServer(function (req, rsp) {
 // TODO
 
 
-### Fetching (streaming) a resource
+### Fetching a resource
 
-// TODO
+Download google's front-page HTML. Note the necessary `followRedirects` option.
+
+```javascript
+var httpUtil = require("http-util"),
+    file = require("fs").createWriteStream(__dirname + "/google.html", { flags: "w" });
+
+httpUtil.request("http://google.com", file, {
+    followRedirects: true
+}).end();
+```
 
 
 Testing
