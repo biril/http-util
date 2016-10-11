@@ -9,9 +9,6 @@ Author's HTTP/S toolbox for Node.js. A compact collection of helpers especially 
 streaming, proxying, etc. Evolved from (and meant as a DRY replacement for) a number of common Node
 patterns. Currently focused on debuggability rather than performance.
 
-[ _Disclaimer: This is very much work in progress. Specifically, the test suite is quite lacking and
-HTTPS is pretty much untested_ ]
-
 
 Set up
 ------
@@ -181,4 +178,4 @@ License
 
 Licensed and freely distributed under the MIT License (LICENSE.txt).
 
-Copyright (c) 2012-2013 Alex Lambiris
+Copyright (c) 2012-2016 Alex Lambiris
