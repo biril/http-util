@@ -2,7 +2,7 @@
   "name": "http-util",
   "version": "0.1.2",
   "author": "biril <alexlambiris@gmail.com>",
-  "description": "Miscelaneous HTTP/S utilities",
+  "description": "Miscellaneous HTTP/S utilities",
   "contributors": [],
   "main": "./http-util.js",
   "repository": {
