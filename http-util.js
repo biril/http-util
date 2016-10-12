@@ -4,8 +4,6 @@
 //     Licensed under the MIT License
 //     Copyright (c) 2016 Alex Lambiris
 
-/*jshint node:true */
-
 "use strict";
 
 require("colors");
@@ -534,7 +532,7 @@ var _ = require("underscore"),
 
     // forward
     // -------
-    // 
+    //
     // Forward a client request (`http.IncomingMessage`) to indicated server (the 'origin-server')
     //  and write received data into given response (`http.ServerResponse`). Particularly
     //  applicable in proxying scenarios
