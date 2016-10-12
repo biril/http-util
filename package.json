@@ -34,7 +34,7 @@
     "test": "./node_modules/.bin/jasmine-node --verbose --color ./test/spec/"
   },
   "engines": {
-    "node": ">=0.8"
+    "node": ">=0.12"
   },
   "directories": {
     "test": "test"
