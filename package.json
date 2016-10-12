@@ -20,14 +20,14 @@
     "stream"
   ],
   "dependencies": {
-    "underscore": "1.4.x",
-    "colors": "0.6.x"
+    "colors": "^1.1.2",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
-    "concat-stream": "*",
+    "concat-stream": "^1.5.2",
     "eslint": "^3.7.1",
-    "jasmine-node": "1.9.x",
-    "nock": "0.18.x"
+    "jasmine-node": "^1.14.5",
+    "nock": "^8.1.0"
   },
   "scripts": {
     "lint": "eslint --quiet --config .eslintrc.json ./http-util.js",
