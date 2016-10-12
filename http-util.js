@@ -93,7 +93,7 @@ var _ = require("underscore"),
         return lgr;
     }()),
 
-    // Short descriptions for HTTP status codes 
+    // Short descriptions for HTTP status codes
     statusCodeDescrs = require("http").STATUS_CODES,
 
     // Ports assigned by default to HTTP/S protocols
@@ -228,20 +228,20 @@ var _ = require("underscore"),
 
     // 'requestInto____' Methods
     // -------------------------
-    // 
+    //
     // Both `requestIntoStream` & `requestIntoResponse` accept similar parameters and return an
     //  `http.ClientRequest` object. This also holds true for `request` and `forward` which
     //  delegate to the former pair. In detail:
-    //  
+    //
     // The `url` parameter, common to both methods is the _absolute_ URL of the resource to be
     //  requested. This may be a plain string or a URL object.
-    // 
+    //
     // The `opts` parameter indicates further options. None of these is mandatory as they all
     //  default to sane values. [Note that in the following, 'response' always refers to the the
     //  response received from the origin-server - _not_ the response object given to
     //  `requestIntoResponse`. The latter will be refered to as 'response-to-client' where
     //  necessary.]
-    // 
+    //
     // * `method`: Request method - an HTTP verb. 'GET' by default
     // * `headers`: A hash of request headers. This may empty as 'host' (the only mandatory header
     //     in HTTP/1.1) will be derived from given `url` if absent. Special headers that should be
@@ -285,7 +285,7 @@ var _ = require("underscore"),
 
     // requestIntoStream
     // -----------------
-    // 
+    //
     // Make a request to some given host (the 'origin-server') and write received content into
     //  given writable stream
     requestIntoStream = function (url, stream, opts) {
@@ -459,7 +459,7 @@ var _ = require("underscore"),
 
     // requestIntoResponse
     // -------------------
-    // 
+    //
     // Make a request to some given host (the 'origin-server') and write received data into given
     //  response (`http.ServerResponse`)
     requestIntoResponse = function (url, responseToClient, opts) {
@@ -521,7 +521,7 @@ var _ = require("underscore"),
 
     // request
     // -------
-    // 
+    //
     // Delegates to `requestIntoStream` or `requestIntoResponse` depending on given whether given
     //  `rspOrStrm` is a writeable stream or response (`http.ServerResponse`)
     request = function (url, rspOrStrm, opts) {
@@ -578,7 +578,7 @@ var _ = require("underscore"),
             l = logger.createWriter(opts, url);
 
         // As for the headers, we start off with the original request's headers and then
-        //  extend / override them with headers present on `opts`, if any are given. 
+        //  extend / override them with headers present on `opts`, if any are given.
         opts.headers = _({}).extend(requestFromClient.headers, opts.headers);
 
         // Abort the request if the underlying connection to the origin-server is terminated before
@@ -598,7 +598,7 @@ var _ = require("underscore"),
         // Forward the request
         req = requestIntoResponse(url, responseToClient, opts);
 
-        // 
+        //
         requestFromClient.once("end", function () {
             l(1, "request-from-client ended -> ending request");
             req.end();
@@ -626,7 +626,7 @@ var _ = require("underscore"),
         //  least in some cases) followed by a 'close' event
         req.on("error", function (error) {
             l(1, "request error (!): %j -> ending response-to-client with 500", error);
-            responseToClient.writeHead(500, { 'Content-Type': 'text/plain' });
+            responseToClient.writeHead(500, { "Content-Type": "text/plain" });
             responseToClient.write("Error: " + JSON.stringify(error));
             responseToClient.end();
         });
