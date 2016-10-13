@@ -43,6 +43,18 @@ var _ = require("underscore"),
             // Index of current log color, used to loop through them
             colorIndex = 0,
 
+            buildContextName = function (method, url) {
+                url || (url = {});
+                var name = [
+                    url.protocol && url.protocol.indexOf("https") === 0 ? "s://" : "",
+                    url.hostname || "",
+                    url.pathname || ""
+                ].join("");
+                if (name.length > 32) { name = name.substr(0, 15) + ".." + name.substr(-15, 15); }
+                name = method + " " + name;
+                return name;
+            },
+
             lgr = {
 
                 write: null,
@@ -62,16 +74,9 @@ var _ = require("underscore"),
                 ensureContext: function (opts, url) {
                     if (opts.logContext) { return; }
 
-                    var name = "";
-                    if (url) {
-                        name = (url.protocol && url.protocol.indexOf("https") === 0 ? "s://" : "") + url.hostname + url.pathname;
-                        if (name.length > 32) { name = name.substr(0, 15) + ".." + name.substr(-15, 15); }
-                    }
-                    name = opts.method + " " + name;
-
                     opts.logContext = {
                         id: _.uniqueId(),
-                        name: name,
+                        name: buildContextName(opts.method, url),
                         color: colors[colorIndex]
                     };
 
