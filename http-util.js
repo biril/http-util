@@ -64,7 +64,7 @@ var _ = require("underscore"),
                     level = lvl;
                     lgr.write = level ? function (context, logLevel, msg) {
                         if (logLevel > level) { return; }
-                        util.puts(util.format.apply(util, mergeWithArgs((context.name + ">  " + msg)[context.color], arguments, 3)));
+                        console.log(util.format.apply(util, mergeWithArgs((context.name + ">  " + msg)[context.color], arguments, 3)));
                     } : noOp;
                 },
 
