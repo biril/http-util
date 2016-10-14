@@ -627,11 +627,11 @@ var _ = require("underscore"),
         req.on("close", function () { l(1, "request closed (!)"); });
 
         // In case of error on the forwarded request (DNS resolution, TCP level, HTTP parse..),
-        //  respond to the client with a 500, containing the actual error message. This is (at
-        //  least in some cases) followed by a 'close' event
+        //  respond to the client with a 503 [Service Unavailable], containing the actual error
+        //  message. This is (at least in some cases) followed by a 'close' event
         req.on("error", function (error) {
-            l(1, "request error (!): %j -> ending response-to-client with 500", error);
-            responseToClient.writeHead(500, { "Content-Type": "text/plain" });
+            l(1, "request error (!): %j -> ending response-to-client with 503", error);
+            responseToClient.writeHead(503, { "Content-Type": "text/plain" });
             responseToClient.write("Error: " + JSON.stringify(error));
             responseToClient.end();
         });
