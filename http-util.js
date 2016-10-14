@@ -344,7 +344,7 @@ var _ = require("underscore"),
                     l(2, "received response chunk, length: %d octets", chunk.length);
                 }
 
-                l(3, "response chunk contents: " + util.inspect(chunk.toString().substr(0, 32))); // TODO: Fix chunk conversion
+                l(2, "response chunk contents: " + util.inspect(chunk.toString().substr(0, 32))); // TODO: Fix chunk conversion
 
                 stream.write(chunk);
                 writtenContentLength += chunk.length;
