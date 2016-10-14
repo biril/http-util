@@ -404,12 +404,12 @@ var _ = require("underscore"),
         });
 
         l(1, "requesting %s %s", opts.method, formatUrl(url));
-        l(2, "request headers: %j", opts.headers);
+        l(3, "request headers: %j", opts.headers);
 
         // Make the request and wrap it in a repeatable
         request = createRepeatableRequest(makeRequest(requestOpts, function (response) {
             l(1, "started receiving response, status: %d %s", response.statusCode, statusCodeDescrs[response.statusCode]);
-            l(2, "response headers: %j", response.headers);
+            l(3, "response headers: %j", response.headers);
 
             // Check whether we'll have to follow a redirect
             if (opts.followRedirects && isRedirectStatusCode(response.statusCode)) {
