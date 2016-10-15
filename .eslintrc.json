@@ -36,7 +36,6 @@
         "semi": [2, "always"],
         "semi-spacing": [1, {"before": false, "after": true}],
         "one-var": [1, "never"],
-        "brace-style": 1,
         "keyword-spacing": [1, {}],
         "space-infix-ops": 1,
         "space-before-blocks": [2, "always"],
