@@ -4,7 +4,6 @@
   "author": "biril <alexlambiris@gmail.com>",
   "description": "Miscellaneous HTTP/S utilities",
   "contributors": [],
-  "main": "./http-util.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/biril/http-util"
@@ -30,7 +29,7 @@
     "nock": "^8.1.0"
   },
   "scripts": {
-    "lint": "eslint --quiet --config .eslintrc.json ./http-util.js",
+    "lint": "eslint --quiet --config .eslintrc.json ./lib/*",
     "test": "./node_modules/.bin/jasmine-node --verbose --color ./test/spec/"
   },
   "engines": {

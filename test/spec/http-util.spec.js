@@ -11,7 +11,7 @@ describe("HTTP util", function () {
         // https = require("https"),
         fs = require("fs"),
         concat = require("concat-stream"),
-        httpUtil = require(__dirname + "/../../http-util.js"),
+        httpUtil = require(__dirname + "/../../index.js"),
         testFilePath = __dirname + "/../test.jpg";
 
     httpUtil.logLevel = 1;
