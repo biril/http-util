@@ -1,6 +1,6 @@
 {
   "name": "http-util",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": "biril <alexlambiris@gmail.com>",
   "description": "Miscellaneous HTTP gimmicks",
   "contributors": [],
