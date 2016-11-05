@@ -2,7 +2,7 @@
   "name": "http-util",
   "version": "0.1.3",
   "author": "biril <alexlambiris@gmail.com>",
-  "description": "Miscellaneous HTTP/S utilities",
+  "description": "Miscellaneous HTTP gimmicks",
   "contributors": [],
   "repository": {
     "type": "git",
