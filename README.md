@@ -7,7 +7,7 @@ HTTP Util
 
 Author's HTTP/S toolbox for Node.js. A compact collection of helpers especially applicable to
 streaming, proxying, etc. Evolved from (and meant as a DRY replacement for) a number of common Node
-patterns. Currently focused on debuggability rather than performance.
+patterns. Currently focused on observability rather than performance.
 
 
 Set up
